@@ -126,7 +126,13 @@ def run():
             reservation_date = datetime.strptime(
                 entry['reservation_date'], '%Y-%m-%d'
             ).date()
-            booking_opens = datetime.fromisoformat(entry['booking_opens'].replace(' ', 'T'))
+            raw = entry['booking_opens'].replace(' ', 'T')
+            parts = raw.split('T')
+            if len(parts) == 2:
+                time_parts = parts[1].split(':')
+                time_parts[0] = time_parts[0].zfill(2)
+                raw = parts[0] + 'T' + ':'.join(time_parts)
+            booking_opens = datetime.fromisoformat(raw)
             booking_opens_date = booking_opens.date()
         except (KeyError, ValueError) as e:
             logger.warning(f"Skipping malformed row {i}: {e}")
