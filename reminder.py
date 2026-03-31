@@ -136,13 +136,14 @@ def upsert_restaurant_db(sheets, entry, reservation_date, booking_opens):
             existing_row = i
             break
 
-    new_row = [restaurant_name, lead_days, entry.get('Booking URL', '')]
+    opening_time = booking_opens.strftime('%H:%M')
+    new_row = [restaurant_name, lead_days, opening_time, entry.get('Booking URL', '')]
 
     if existing_row:
         # Update existing row
         sheets.spreadsheets().values().update(
             spreadsheetId=SHEET_ID,
-            range=f'Restaurant DB!A{existing_row + 1}:C{existing_row + 1}',
+            range=f'Restaurant DB!A{existing_row + 1}:D{existing_row + 1}',
             valueInputOption='RAW',
             body={'values': [new_row]}
         ).execute()
