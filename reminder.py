@@ -126,7 +126,7 @@ def run():
             reservation_date = datetime.strptime(
                 entry['reservation_date'], '%Y-%m-%d'
             ).date()
-            booking_opens = datetime.fromisoformat(entry['booking_opens'])
+            booking_opens = datetime.fromisoformat(entry['booking_opens'].replace(' ', 'T'))
             booking_opens_date = booking_opens.date()
         except (KeyError, ValueError) as e:
             logger.warning(f"Skipping malformed row {i}: {e}")
