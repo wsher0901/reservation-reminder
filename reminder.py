@@ -118,6 +118,44 @@ def delete_rows(sheets, indices):
         ).execute()
         logger.info(f"Deleted {len(requests)} expired rows.")
 
+def upsert_restaurant_db(sheets, entry, reservation_date, booking_opens):
+    lead_days = (reservation_date - booking_opens.date()).days
+
+    # Read existing DB
+    result = sheets.spreadsheets().values().get(
+        spreadsheetId=SHEET_ID,
+        range=DB_RANGE
+    ).execute()
+    rows = result.get('values', [])
+
+    # Find if restaurant already exists (skip header)
+    restaurant_name = entry['Restaurant']
+    existing_row = None
+    for i, row in enumerate(rows[1:], start=1):
+        if row and row[0].lower() == restaurant_name.lower():
+            existing_row = i
+            break
+
+    new_row = [restaurant_name, lead_days, entry.get('Booking URL', '')]
+
+    if existing_row:
+        # Update existing row
+        sheets.spreadsheets().values().update(
+            spreadsheetId=SHEET_ID,
+            range=f'Restaurant DB!A{existing_row + 1}:C{existing_row + 1}',
+            valueInputOption='RAW',
+            body={'values': [new_row]}
+        ).execute()
+        logger.info(f"Updated Restaurant DB: {restaurant_name}")
+    else:
+        # Append new row
+        sheets.spreadsheets().values().append(
+            spreadsheetId=SHEET_ID,
+            range=DB_RANGE,
+            valueInputOption='RAW',
+            body={'values': [new_row]}
+        ).execute()
+        logger.info(f"Added to Restaurant DB: {restaurant_name}")
 
 def run():
     today = datetime.now().date()
