@@ -1,0 +1,28 @@
+name: Reservation Reminder
+
+on:
+  schedule:
+    - cron: '0 12 * * *'  # 8:00 AM EDT (UTC-4)
+    - cron: '0 2 * * *'   # 10:00 PM EDT (UTC-4)
+  workflow_dispatch:
+
+jobs:
+  run-reminder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run reminder script
+        env:
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_TOKEN_JSON: ${{ secrets.GMAIL_TOKEN_JSON }}
+          TZ: America/New_York
+        run: python reminder.py
