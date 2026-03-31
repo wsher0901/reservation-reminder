@@ -18,7 +18,8 @@ SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets'
 ]
 SHEET_ID = '1W0Zcxzml7FXTGT-CG8Fhi0vwwZnlCNVmkb8e61Kga6E'
-SHEET_RANGE = 'Sheet1!A:F'
+RESERVATIONS_RANGE = 'Reservations!A:G'
+DB_RANGE = 'Restaurant DB!A:C'
 YOUR_EMAIL = os.environ['GMAIL_ADDRESS']
 TOKEN_JSON = os.environ['GMAIL_TOKEN_JSON']
 
