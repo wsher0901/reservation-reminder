@@ -49,34 +49,34 @@ def send_email(gmail, subject, body):
 
 
 def build_email_body(entry, reminder_type):
-    raw = entry['booking_opens'].replace(' ', 'T')
+    raw = entry['Booking Opening'].replace(' ', 'T')
     parts = raw.split('T')
     if len(parts) == 2:
         time_parts = parts[1].split(':')
         time_parts[0] = time_parts[0].zfill(2)
         raw = parts[0] + 'T' + ':'.join(time_parts)
     booking_opens = datetime.fromisoformat(raw)
-    reservation_date = datetime.strptime(entry['reservation_date'], '%Y-%m-%d')
+    reservation_date = datetime.strptime(entry['Reservation Date'], '%Y-%m-%d')
     time_str = booking_opens.strftime('%I:%M %p')
     res_date_str = reservation_date.strftime('%A, %B %d, %Y')
     opens_date_str = booking_opens.strftime('%A, %B %d')
-    notes_html = f"<p><b>Notes:</b> {entry['notes']}</p>" if entry.get('notes') else ""
+    notes_html = f"<p><b>Notes:</b> {entry['Notes']}</p>" if entry.get('Notes') else ""
 
     return f"""
     <html><body style="font-family: Arial, sans-serif; max-width: 600px;">
-        <h2>🍽️ Reservation Reminder: {entry['restaurant']}</h2>
+        <h2>🍽️ Reservation Reminder: {entry['Restaurant']}</h2>
         <p style="font-size: 16px;">{reminder_type}</p>
         <hr/>
-        <p><b>Restaurant:</b> {entry['restaurant']}</p>
+        <p><b>Restaurant:</b> {entry['Restaurant']}</p>
         <p><b>Reservation Date:</b> {res_date_str}</p>
-        <p><b>Party Size:</b> {entry.get('party_size', '?')}</p>
+        <p><b>Party Size:</b> {entry.get('Party Size', '?')}</p>
         <p><b>Booking Opens:</b> {opens_date_str} at <b>{time_str}</b></p>
         {notes_html}
         <br/>
-        <a href="{entry['booking_url']}" 
+        <a href="{entry['Booking URL']}" 
            style="background:#000;color:#fff;padding:12px 24px;
                   text-decoration:none;border-radius:6px;font-size:15px;">
-            Book Now → {entry['restaurant']}
+            Book Now → {entry['Restaurant']}
         </a>
         <br/><br/>
         <p style="color:#999;font-size:12px;">Auto-reminder from your reservation tracker.</p>
@@ -131,9 +131,9 @@ def run():
     for i, entry in enumerate(reservations):
         try:
             reservation_date = datetime.strptime(
-                entry['reservation_date'], '%Y-%m-%d'
+                entry['Reservation Date'], '%Y-%m-%d'
             ).date()
-            raw = entry['booking_opens'].replace(' ', 'T')
+            raw = entry['Booking Opening'].replace(' ', 'T')
             parts = raw.split('T')
             if len(parts) == 2:
                 time_parts = parts[1].split(':')
@@ -147,7 +147,7 @@ def run():
 
         # Auto-remove expired
         if reservation_date < today:
-            logger.info(f"Marking for removal: {entry['restaurant']}")
+            logger.info(f"Marking for removal: {entry['Restaurant']}")
             rows_to_delete.append(i)
             continue
 
@@ -155,7 +155,7 @@ def run():
         if booking_opens_date == tomorrow:
             send_email(
                 gmail,
-                subject=f"⏰ Tomorrow: Book {entry['restaurant']} at {booking_opens.strftime('%I:%M %p')}",
+                subject=f"⏰ Tomorrow: Book {entry['Restaurant']} at {booking_opens.strftime('%I:%M %p')}",
                 body=build_email_body(entry, "📅 Booking opens <b>tomorrow</b> — be ready!")
             )
 
@@ -163,7 +163,7 @@ def run():
         elif booking_opens_date == today:
             send_email(
                 gmail,
-                subject=f"🚨 TODAY: Book {entry['restaurant']} at {booking_opens.strftime('%I:%M %p')}",
+                subject=f"🚨 TODAY: Book {entry['Restaurant']} at {booking_opens.strftime('%I:%M %p')}",
                 body=build_email_body(entry, "🚨 Booking opens <b>today</b> — don't miss it!")
             )
 
