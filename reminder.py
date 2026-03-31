@@ -1,0 +1,162 @@
+import json
+import os
+import base64
+import logging
+from datetime import datetime, timedelta
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+SCOPES = [
+    'https://www.googleapis.com/auth/gmail.send',
+    'https://www.googleapis.com/auth/spreadsheets'
+]
+SHEET_ID = '1W0Zcxzml7FXTGT-CG8Fhi0vwwZnlCNVmkb8e61Kga6E'
+SHEET_RANGE = 'Sheet1!A:F'
+YOUR_EMAIL = os.environ['GMAIL_ADDRESS']
+TOKEN_JSON = os.environ['GMAIL_TOKEN_JSON']
+
+
+def get_services():
+    creds = Credentials.from_authorized_user_info(
+        json.loads(TOKEN_JSON), SCOPES
+    )
+    if creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+    gmail = build('gmail', 'v1', credentials=creds)
+    sheets = build('sheets', 'v4', credentials=creds)
+    return gmail, sheets
+
+
+def send_email(gmail, subject, body):
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = subject
+    msg['From'] = YOUR_EMAIL
+    msg['To'] = YOUR_EMAIL
+    msg.attach(MIMEText(body, 'html'))
+    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+    gmail.users().messages().send(
+        userId='me', body={'raw': raw}
+    ).execute()
+    logger.info(f"Email sent: {subject}")
+
+
+def build_email_body(entry, reminder_type):
+    booking_opens = datetime.fromisoformat(entry['booking_opens'])
+    reservation_date = datetime.strptime(entry['reservation_date'], '%Y-%m-%d')
+    time_str = booking_opens.strftime('%I:%M %p')
+    res_date_str = reservation_date.strftime('%A, %B %d, %Y')
+    opens_date_str = booking_opens.strftime('%A, %B %d')
+    notes_html = f"<p><b>Notes:</b> {entry['notes']}</p>" if entry.get('notes') else ""
+
+    return f"""
+    <html><body style="font-family: Arial, sans-serif; max-width: 600px;">
+        <h2>🍽️ Reservation Reminder: {entry['restaurant']}</h2>
+        <p style="font-size: 16px;">{reminder_type}</p>
+        <hr/>
+        <p><b>Restaurant:</b> {entry['restaurant']}</p>
+        <p><b>Reservation Date:</b> {res_date_str}</p>
+        <p><b>Party Size:</b> {entry.get('party_size', '?')}</p>
+        <p><b>Booking Opens:</b> {opens_date_str} at <b>{time_str}</b></p>
+        {notes_html}
+        <br/>
+        <a href="{entry['booking_url']}" 
+           style="background:#000;color:#fff;padding:12px 24px;
+                  text-decoration:none;border-radius:6px;font-size:15px;">
+            Book Now → {entry['restaurant']}
+        </a>
+        <br/><br/>
+        <p style="color:#999;font-size:12px;">Auto-reminder from your reservation tracker.</p>
+    </body></html>
+    """
+
+
+def read_sheet(sheets):
+    result = sheets.spreadsheets().values().get(
+        spreadsheetId=SHEET_ID,
+        range=SHEET_RANGE
+    ).execute()
+    rows = result.get('values', [])
+    if len(rows) <= 1:
+        return []  # only header or empty
+
+    headers = rows[0]
+    return [dict(zip(headers, row)) for row in rows[1:]]
+
+
+def delete_rows(sheets, indices):
+    """Delete rows by index (0-based, excluding header)"""
+    # Sort descending so row deletion doesn't shift indices
+    requests = []
+    for i in sorted(indices, reverse=True):
+        requests.append({
+            "deleteDimension": {
+                "range": {
+                    "sheetId": 0,
+                    "dimension": "ROWS",
+                    "startIndex": i + 1,  # +1 to account for header
+                    "endIndex": i + 2
+                }
+            }
+        })
+    if requests:
+        sheets.spreadsheets().batchUpdate(
+            spreadsheetId=SHEET_ID,
+            body={"requests": requests}
+        ).execute()
+        logger.info(f"Deleted {len(requests)} expired rows.")
+
+
+def run():
+    today = datetime.now().date()
+    tomorrow = today + timedelta(days=1)
+    gmail, sheets = get_services()
+
+    reservations = read_sheet(sheets)
+    rows_to_delete = []
+
+    for i, entry in enumerate(reservations):
+        try:
+            reservation_date = datetime.strptime(
+                entry['reservation_date'], '%Y-%m-%d'
+            ).date()
+            booking_opens = datetime.fromisoformat(entry['booking_opens'])
+            booking_opens_date = booking_opens.date()
+        except (KeyError, ValueError) as e:
+            logger.warning(f"Skipping malformed row {i}: {e}")
+            continue
+
+        # Auto-remove expired
+        if reservation_date < today:
+            logger.info(f"Marking for removal: {entry['restaurant']}")
+            rows_to_delete.append(i)
+            continue
+
+        # Day-before reminder
+        if booking_opens_date == tomorrow:
+            send_email(
+                gmail,
+                subject=f"⏰ Tomorrow: Book {entry['restaurant']} at {booking_opens.strftime('%I:%M %p')}",
+                body=build_email_body(entry, "📅 Booking opens <b>tomorrow</b> — be ready!")
+            )
+
+        # Morning-of reminder
+        elif booking_opens_date == today:
+            send_email(
+                gmail,
+                subject=f"🚨 TODAY: Book {entry['restaurant']} at {booking_opens.strftime('%I:%M %p')}",
+                body=build_email_body(entry, "🚨 Booking opens <b>today</b> — don't miss it!")
+            )
+
+    delete_rows(sheets, rows_to_delete)
+    logger.info("Run complete.")
+
+
+if __name__ == '__main__':
+    run()
