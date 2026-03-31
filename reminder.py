@@ -19,7 +19,7 @@ SCOPES = [
 ]
 SHEET_ID = '1W0Zcxzml7FXTGT-CG8Fhi0vwwZnlCNVmkb8e61Kga6E'
 RESERVATIONS_RANGE = 'Reservations!A:G'
-DB_RANGE = 'Restaurant DB!A:C'
+DB_RANGE = 'Restaurant DB!A:D'
 YOUR_EMAIL = os.environ['GMAIL_ADDRESS']
 TOKEN_JSON = os.environ['GMAIL_TOKEN_JSON']
 
