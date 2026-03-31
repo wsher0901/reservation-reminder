@@ -55,7 +55,10 @@ def build_email_body(entry, reminder_type):
         time_parts = parts[1].split(':')
         time_parts[0] = time_parts[0].zfill(2)
         raw = parts[0] + 'T' + ':'.join(time_parts)
-    booking_opens = datetime.fromisoformat(raw)
+    try:
+        booking_opens = datetime.strptime(entry['Booking Opening'], '%m-%d-%Y %H:%M')
+    except ValueError:
+        booking_opens = datetime.strptime(entry['Booking Opening'], '%Y-%m-%d %H:%M')
     reservation_date = datetime.strptime(entry['Reservation Date'], '%Y-%m-%d')
     time_str = booking_opens.strftime('%I:%M %p')
     res_date_str = reservation_date.strftime('%A, %B %d, %Y')
@@ -139,7 +142,10 @@ def run():
                 time_parts = parts[1].split(':')
                 time_parts[0] = time_parts[0].zfill(2)
                 raw = parts[0] + 'T' + ':'.join(time_parts)
-            booking_opens = datetime.fromisoformat(raw)
+            try:
+                booking_opens = datetime.strptime(entry['Booking Opening'], '%m-%d-%Y %H:%M')
+            except ValueError:
+                booking_opens = datetime.strptime(entry['Booking Opening'], '%Y-%m-%d %H:%M')
             booking_opens_date = booking_opens.date()
         except (KeyError, ValueError) as e:
             logger.warning(f"Skipping malformed row {i}: {e}")
