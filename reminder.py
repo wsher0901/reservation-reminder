@@ -179,6 +179,9 @@ def run():
             logger.warning(f"Skipping malformed row {i}: {e}")
             continue
 
+       # Always upsert to Restaurant DB
+        upsert_restaurant_db(sheets, entry, reservation_date, booking_opens)
+
         # Auto-remove expired
         if reservation_date < today:
             logger.info(f"Marking for removal: {entry['Restaurant']}")
