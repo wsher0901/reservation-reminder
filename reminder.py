@@ -49,20 +49,15 @@ def send_email(gmail, subject, body):
 
 
 def build_email_body(entry, reminder_type):
-    raw = entry['Booking Opening'].replace(' ', 'T')
-    parts = raw.split('T')
-    if len(parts) == 2:
-        time_parts = parts[1].split(':')
-        time_parts[0] = time_parts[0].zfill(2)
-        raw = parts[0] + 'T' + ':'.join(time_parts)
     try:
         booking_opens = datetime.strptime(entry['Booking Opening'], '%m-%d-%Y %H:%M')
     except ValueError:
         booking_opens = datetime.strptime(entry['Booking Opening'], '%Y-%m-%d %H:%M')
-    reservation_date = datetime.strptime(entry['Reservation Date'], '%Y-%m-%d')
+    reservation_date = datetime.strptime(entry['Reservation Date'], '%m-%d-%Y')
     time_str = booking_opens.strftime('%I:%M %p')
     res_date_str = reservation_date.strftime('%A, %B %d, %Y')
     opens_date_str = booking_opens.strftime('%A, %B %d')
+    occasion_html = f"<p><b>Occasion:</b> {entry['Occasion']}</p>" if entry.get('Occasion') else ""
     notes_html = f"<p><b>Notes:</b> {entry['Notes']}</p>" if entry.get('Notes') else ""
 
     return f"""
@@ -73,6 +68,7 @@ def build_email_body(entry, reminder_type):
         <p><b>Restaurant:</b> {entry['Restaurant']}</p>
         <p><b>Reservation Date:</b> {res_date_str}</p>
         <p><b>Party Size:</b> {entry.get('Party Size', '?')}</p>
+        <p><b>Occasion:</b> {occasion_html}</p>
         <p><b>Booking Opens:</b> {opens_date_str} at <b>{time_str}</b></p>
         {notes_html}
         <br/>
@@ -134,14 +130,8 @@ def run():
     for i, entry in enumerate(reservations):
         try:
             reservation_date = datetime.strptime(
-                entry['Reservation Date'], '%Y-%m-%d'
+                entry['Reservation Date'], '%m-%d-%Y'
             ).date()
-            raw = entry['Booking Opening'].replace(' ', 'T')
-            parts = raw.split('T')
-            if len(parts) == 2:
-                time_parts = parts[1].split(':')
-                time_parts[0] = time_parts[0].zfill(2)
-                raw = parts[0] + 'T' + ':'.join(time_parts)
             try:
                 booking_opens = datetime.strptime(entry['Booking Opening'], '%m-%d-%Y %H:%M')
             except ValueError:
