@@ -48,7 +48,13 @@ def send_email(gmail, subject, body):
 
 
 def build_email_body(entry, reminder_type):
-    booking_opens = datetime.fromisoformat(entry['booking_opens'])
+    raw = entry['booking_opens'].replace(' ', 'T')
+    parts = raw.split('T')
+    if len(parts) == 2:
+        time_parts = parts[1].split(':')
+        time_parts[0] = time_parts[0].zfill(2)
+        raw = parts[0] + 'T' + ':'.join(time_parts)
+    booking_opens = datetime.fromisoformat(raw)
     reservation_date = datetime.strptime(entry['reservation_date'], '%Y-%m-%d')
     time_str = booking_opens.strftime('%I:%M %p')
     res_date_str = reservation_date.strftime('%A, %B %d, %Y')
