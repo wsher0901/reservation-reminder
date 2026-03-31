@@ -179,8 +179,8 @@ def run():
         except (KeyError, ValueError) as e:
             logger.warning(f"Skipping malformed row {i}: {e}")
             continue
-
-       # Always upsert to Restaurant DB
+            
+        # Always upsert to Restaurant DB
         upsert_restaurant_db(sheets, entry, reservation_date, booking_opens)
 
         # Auto-remove expired
