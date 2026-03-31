@@ -87,7 +87,7 @@ def build_email_body(entry, reminder_type):
 def read_sheet(sheets):
     result = sheets.spreadsheets().values().get(
         spreadsheetId=SHEET_ID,
-        range=SHEET_RANGE
+        range=RESERVATIONS_RANGE
     ).execute()
     rows = result.get('values', [])
     if len(rows) <= 1:
