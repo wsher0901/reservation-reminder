@@ -184,7 +184,7 @@ def run():
         upsert_restaurant_db(sheets, entry, reservation_date, booking_opens)
 
         # Auto-remove expired
-        if reservation_date < today:
+        if booking_opens_date < today:
             logger.info(f"Marking for removal: {entry['Restaurant']}")
             rows_to_delete.append(i)
             continue
